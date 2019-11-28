@@ -1,3 +1,6 @@
+mod enum_examples;
+mod borrowing_examples;
+
 fn main() {
     println!("Hello world");
 
@@ -6,19 +9,6 @@ fn main() {
         let x = 12;
         let y: i32 = 12;
         assert_eq!(x, y);
-    }
-
-    //immutable values
-    {
-        let x = 1;
-        //x = 10 //compiler error. x is immutable
-    }
-
-
-    //mutable values
-    {
-        let mut x = 1;
-        x = 2;
     }
 
     //scopes
@@ -84,37 +74,61 @@ fn main() {
         }
     }
 
+    enum_examples::run();
+    borrowing_examples::run();
+
     closure_examples();
     map_examples();
     collection_examples();
     structure_examples();
     trait_examples();
     method_examples();
-    enum_examples()
+    pattern_matching_examples();
+    mutability_examples();
 }
 
-fn enum_examples() {
+fn pattern_matching_examples() {
 
-    enum Event {
-        Login { user: i32, pw: i32 },
-        Shutdown,
-        Misc(i32)
+    //no pattern matching on structures!
+    {
+        trait A {}
+        struct B { x: i32 }
+        struct C { x: i32 }
+
+        impl A for B {}
+        impl A for C {}
+
+        //todo
+
+//        fn translate(a: &A) -> i32 {
+//            match a {
+//                B { x } => x,
+//                C { x } => x + 1,
+//            }
+//        }
     }
 
-    fn translate(e: Event) -> i32 {
-        match e {
-            Event::Login { user, pw } => user + pw,
-            Event::Shutdown => 0,
-            Event::Misc(i) if i < 10 => i,
-            _ => 1000
+    {
+        trait A {
+            fn num(&self) -> i32;
         }
+
+        struct B { x: i32 }
+        struct C { x: i32 }
+
+        //todo
+
+//        impl A for B {
+//            fn num(&self) -> i32 {
+//               self.x;
+//            }
+//        }
+//        impl B for C {
+//            fn num(&self) -> i32 {
+//                self.x;
+//            }
+//        }
     }
-
-    assert_eq!(translate(Event::Shutdown), 0);
-    assert_eq!(translate(Event::Login { user:1, pw:2}), 3);
-    assert_eq!(translate(Event::Misc(5)), 5);
-    assert_eq!(translate(Event::Misc(11)), 1000)
-
 }
 
 fn closure_examples() {
@@ -185,6 +199,67 @@ fn map_examples() {
     }
 }
 
+fn mutability_examples() {
+    //immutable values
+    {
+        let x = 1;
+        //x = 10 //compiler error. x is immutable
+    }
+
+    //mutable values
+    {
+        let mut x = 1;
+        x = 2;
+    }
+
+    struct Point { x: i32, y: i32 }
+
+    fn change1(p: Point) {
+//        p.x = 1 //cannot mutably borrow immutable field
+//        p = Point { x: 1, y: 1}; //re-assignment
+    }
+
+    fn change2(mut p: Point) {
+        p.x = 1;
+        p = Point { x: 1, y: 1 };
+    }
+
+    fn change3(p: &Point) {
+//        p.x = 1 //cannot mutably borrow immutable field
+    }
+
+    fn change4(p: &mut Point) {
+        p.x = p.x + 1;
+//        p = &mut Point { x: 1, y: 1}; //temporary value only lives until here
+//        *p = Point { x: 1, y: 1};
+    }
+
+    fn change5(mut p: &mut Point) {
+        p.x = p.x + 1;
+        *p = Point { x: 1, y: 1 };
+    }
+
+    let p1 = Point { x: 0, y: 0 };
+    change2(p1);
+
+//    let y = p1.x; //use of moved value: `p1.x`
+
+    let p2 = Point { x: 0, y: 0 };
+    change3(&p2);
+    let y = p2.x;
+
+    {
+        let mut p = &mut Point { x: 0, y: 0 };
+        change4(p);
+        assert_eq!(p.x, 1)
+    }
+    {
+        let mut p = &mut Point { x: 0, y: 0 };
+        change5(p);
+        assert_eq!(p.x, 1)
+    }
+}
+
 fn method_examples() {
     {
         struct A {}
@@ -240,7 +315,7 @@ fn trait_examples() {
         impl A for C {}
         impl B for C {}
 
-        let c = C{};
+        let c = C {};
         c.numA();
         c.numB();
     }
